@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Les 10 Défis de la Brasserie</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #121212; color: #eee; text-align: center; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    header { background: #1f1f1f; padding: 15px; font-size: 24px; font-weight: bold; }
+    #menu { display: flex; flex-wrap: wrap; justify-content: center; background: #222; padding: 10px; }
+    .game-btn { background: #4CAF50; border: none; color: white; margin: 5px; padding: 10px 15px; border-radius: 6px; cursor: pointer; flex: 1 1 140px; max-width: 150px; transition: background 0.3s; }
+    .game-btn:hover:not(:disabled) { background: #45a049; }
+    .game-btn:disabled { background: #555; cursor: not-allowed; opacity: 0.6; }
+    #main-content { display: flex; flex: 1; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+    #game-container { padding: 20px; min-height: 300px; }
+    #message { margin-top: 20px; font-size: 22px; color: yellow; font-weight: bold; }
+    .answer-btn { background: #008CBA; margin: 10px; padding: 10px 20px; font-size: 18px; border-radius: 6px; border: none; cursor: pointer; transition: background 0.3s; }
+    .answer-btn:hover { background: #007B9E; }
+    input[type=text], input[type=number] { font-size: 18px; padding: 8px; width: 200px; border-radius: 6px; border: none; margin-top: 10px; }
+    #reward-card { display: none; margin-top: 40px; text-align: center; }
+    #reward-code { font-size: 40px; font-weight: bold; color: #ffeb3b; padding: 20px; border: 2px dashed #ffeb3b; border-radius: 10px; margin: 20px auto; max-width: 80%; overflow-wrap: break-word; }
+    #reward-card p { font-size: 24px; color: #fff; margin-top: 20px; }
+    #codes-log-container { margin-top: 40px; padding: 20px; background: #1f1f1f; border-radius: 10px; width: 90%; max-width: 600px; }
+    #codes-log-container h3 { margin-top: 0; color: #4CAF50; }
+    #codes-log-list { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; }
+    .code-item { background: #222; margin-bottom: 10px; padding: 10px; border-radius: 5px; text-align: left; }
+    .code-item .timestamp { font-size: 14px; color: #aaa; float: right; }
+    #reset-button { background: #d9534f; color: white; border: none; padding: 10px; margin-top: 20px; cursor: pointer; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<header>
+    Les 10 Défis de la Brasserie
+</header>
+
+<div id="menu"></div>
+
+<div id="main-content">
+    <div id="game-container">
+        <h2>Bienvenue !</h2>
+        <p>Réussissez les 10 défis pour gagner votre récompense !</p>
+    </div>
+    <div id="message"></div>
+    <div id="reward-card">
+        <h3 id="reward-code"></h3>
+        <p>Félicitations, vous avez remporté un menu complet gratuit !<br>Pour en profiter, montrez ce code à l’accueil pendant votre prochaine visite ! CODE VALABLE 1 FOIS</p>
+    </div>
+</div>
+
+<div id="codes-log-container">
+    <h3>Codes Générés (Pour le restaurant)</h3>
+    <p style="font-size: 14px; color: #ffeb3b;">ATTENTION : Ce journal est effacé si la page est rechargée !</p>
+    <ul id="codes-log-list">
+        </ul>
+</div>
+
+<button id="reset-button" onclick="resetCodes()">Réinitialiser les codes</button>
+
+<script>
+const menu = document.getElementById('menu');
+const container = document.getElementById('game-container');
+const message = document.getElementById('message');
+const rewardCard = document.getElementById('reward-card');
+const rewardCodeElement = document.getElementById('reward-code');
+const codesLogList = document.getElementById('codes-log-list');
+const gamesStatus = {};
+
+const initialCodes = [
+    'BRASS-1T79Y4X-EPR8A', 'BRASS-1T79Y4X-3L7N0', 'BRASS-1T79Y4Y-9B8T0', 'BRASS-1T79Y4Y-6I9QZ',
+    'BRASS-1T79Y4Y-E4S4Q', 'BRASS-1T79Y4Z-34A3E', 'BRASS-1T79Y4Z-25Q1C', 'BRASS-1T79Y50-5I8H7',
+    'BRASS-1T79Y50-Y7N9M', 'BRASS-1T79Y51-F8H2C', 'BRASS-1T79Y51-2K2J6', 'BRASS-1T79Y52-3X5U1',
+    'BRASS-1T79Y52-C8V4W', 'BRASS-1T79Y53-6G9R1', 'BRASS-1T79Y53-R0P1K', 'BRASS-1T79Y53-T3G8J',
+    'BRASS-1T79Y54-7V5J2', 'BRASS-1T79Y54-9T0C3', 'BRASS-1T79Y55-D4H7T', 'BRASS-1T79Y55-M8R9A',
+    'BRASS-1T79Y56-9Z2X7', 'BRASS-1T79Y56-J0A3W', 'BRASS-1T79Y57-N5D8G', 'BRASS-1T79Y57-V9T1P',
+    'BRASS-1T79Y58-4B6F0', 'BRASS-1T79Y58-C5U9E', 'BRASS-1T79Y59-2P4Y7', 'BRASS-1T79Y59-Q8Z6J',
+    'BRASS-1T79Y5A-1H2V8', 'BRASS-1T79Y5A-7T5L0', 'BRASS-1T79Y5B-D3K9P', 'BRASS-1T79Y5B-V2C7E',
+    'BRASS-1T79Y5C-5F1H9', 'BRASS-1T79Y5C-I0L4M', 'BRASS-1T79Y5D-O8U5S', 'BRASS-1T79Y5D-W2G1T',
+    'BRASS-1T79Y5E-6E9P3', 'BRASS-1T79Y5E-S7Z4B', 'BRASS-1T79Y5F-A9D2G', 'BRASS-1T79Y5F-H6M1V',
+    'BRASS-1T79Y5G-K4J8R', 'BRASS-1T79Y5G-Q1P5X', 'BRASS-1T79Y5H-3L7N0', 'BRASS-1T79Y5H-9B8T0',
+    'BRASS-1T79Y5I-C8V4W', 'BRASS-1T79Y5I-6G9R1', 'BRASS-1T79Y5J-T3G8J', 'BRASS-1T79Y5J-7V5J2',
+    'BRASS-1T79Y5K-9T0C3', 'BRASS-1T79Y5K-D4H7T', 'BRASS-1T79Y5L-M8R9A', 'BRASS-1T79Y5L-9Z2X7',
+    'BRASS-1T79Y5M-J0A3W', 'BRASS-1T79Y5M-N5D8G', 'BRASS-1T79Y5N-V9T1P', 'BRASS-1T79Y5N-4B6F0',
+    'BRASS-1T79Y5O-C5U9E', 'BRASS-1T79Y5O-2P4Y7', 'BRASS-1T79Y5P-Q8Z6J', 'BRASS-1T79Y5P-1H2V8',
+    'BRASS-1T79Y5Q-7T5L0', 'BRASS-1T79Y5Q-D3K9P', 'BRASS-1T79Y5R-V2C7E', 'BRASS-1T79Y5R-5F1H9',
+    'BRASS-1T79Y5S-I0L4M', 'BRASS-1T79Y5S-O8U5S', 'BRASS-1T79Y5T-W2G1T', 'BRASS-1T79Y5T-6E9P3',
+    'BRASS-1T79Y5U-S7Z4B', 'BRASS-1T79Y5U-A9D2G', 'BRASS-1T79Y5V-H6M1V', 'BRASS-1T79Y5V-K4J8R',
+    'BRASS-1T79Y5W-Q1P5X', 'BRASS-1T79Y5W-EPR8A', 'BRASS-1T79Y5X-3L7N0', 'BRASS-1T79Y5X-9B8T0',
+    'BRASS-1T79Y5Y-6I9QZ', 'BRASS-1T79Y5Y-E4S4Q', 'BRASS-1T79Y5Z-34A3E', 'BRASS-1T79Y5Z-25Q1C',
+    'BRASS-1T79Y60-5I8H7', 'BRASS-1T79Y60-Y7N9M', 'BRASS-1T79Y61-F8H2C', 'BRASS-1T79Y61-2K2J6',
+    'BRASS-1T79Y62-3X5U1', 'BRASS-1T79Y62-C8V4W', 'BRASS-1T79Y63-6G9R1', 'BRASS-1T79Y63-R0P1K',
+    'BRASS-1T79Y63-T3G8J', 'BRASS-1T79Y64-7V5J2', 'BRASS-1T79Y64-9T0C3', 'BRASS-1T79Y65-D4H7T',
+    'BRASS-1T79Y65-M8R9A', 'BRASS-1T79Y66-9Z2X7', 'BRASS-1T79Y66-J0A3W', 'BRASS-1T79Y67-N5D8G',
+    'BRASS-1T79Y67-V9T1P', 'BRASS-1T79Y68-4B6F0', 'BRASS-1T79Y68-C5U9E', 'BRASS-1T79Y69-2P4Y7'
+];
+
+let availableCodes = [];
+let usedCodes = [];
+
+function initializeCodes() {
+    if (!localStorage.getItem('availableCodes')) {
+        localStorage.setItem('availableCodes', JSON.stringify(initialCodes));
+    }
+    if (!localStorage.getItem('usedCodes')) {
+        localStorage.setItem('usedCodes', JSON.stringify([]));
+    }
+    availableCodes = JSON.parse(localStorage.getItem('availableCodes'));
+    usedCodes = JSON.parse(localStorage.getItem('usedCodes'));
+}
+
+function resetCodes() {
+    if (confirm("Êtes-vous sûr de vouloir réinitialiser la liste de codes ? Tous les codes non utilisés seront remis en stock.")) {
+        localStorage.clear();
+        initializeCodes();
+        codesLogList.innerHTML = '';
+        alert("La liste de codes a été réinitialisée !");
+        window.location.reload();
+    }
+}
+
+initializeCodes();
+
+const games = [
+    { id: 'calcul', name: "Défi 1 : Le Calcul", fn: jeuCalcul },
+    { id: 'pendu', name: "Défi 2 : Le Pendu", fn: jeuPendu },
+    { id: 'code', name: "Défi 3 : Le Code", fn: jeuCodeSecret },
+    { id: 'tresor', name: "Défi 4 : Le Trésor", fn: jeuChasseAuTresor },
+    { id: 'simpleClic', name: "Défi 5 : La Bonne Case", fn: jeuSimpleClic },
+    { id: 'suite', name: "Défi 6 : La Suite", fn: jeuSuiteNombres },
+    { id: 'compteur', name: "Défi 7 : Le Compteur", fn: jeuCompteur },
+    { id: 'chiffres', name: "Défi 8 : Les Chiffres", fn: jeuChiffres },
+    { id: 'poids', name: "Défi 9 : Le Poids", fn: jeuPoids },
+    { id: 'paires', name: "Défi 10 : Les Paires", fn: jeuPairesCouleurs },
+];
+
+function addCodeToLog(code) {
+    const now = new Date();
+    const timeString = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+    const listItem = document.createElement('li');
+    listItem.classList.add('code-item');
+    listItem.innerHTML = `${code} <span class="timestamp">${timeString}</span>`;
+    codesLogList.prepend(listItem);
+}
+
+function checkAllGamesCompleted() {
+    const allCompleted = games.every(g => gamesStatus[g.id]);
+    if (allCompleted) {
+        container.innerHTML = '<h2>Tous les défis sont réussis !</h2>';
+        message.textContent = '';
+
+        if (availableCodes.length > 0) {
+            const newCode = availableCodes.shift();
+            usedCodes.push(newCode);
+            localStorage.setItem('availableCodes', JSON.stringify(availableCodes));
+            localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
+
+            rewardCodeElement.textContent = newCode;
+            addCodeToLog(newCode);
+            rewardCard.style.display = 'block';
+        } else {
+            rewardCodeElement.textContent = "Aucun code disponible.";
+            rewardCodeElement.style.color = '#d9534f';
+            rewardCard.style.display = 'block';
+            rewardCard.querySelector('p').textContent = "Désolé, tous les codes ont été distribués. Revenez plus tard !";
+        }
+    }
+}
+
+function completeGame(gameId) {
+    if (!gamesStatus[gameId]) {
+        gamesStatus[gameId] = true;
+        const btn = document.querySelector(`.game-btn[data-id="${gameId}"]`);
+        if (btn) {
+            btn.disabled = true;
+            btn.style.backgroundColor = '#2c5d2e';
+        }
+        checkAllGamesCompleted();
+    }
+}
+
+function resetGameArea() {
+    container.innerHTML = '';
+    message.textContent = '';
+    rewardCard.style.display = 'none';
+}
+
+games.forEach(g => {
+    const btn = document.createElement('button');
+    btn.textContent = g.name;
+    btn.classList.add('game-btn');
+    btn.setAttribute('data-id', g.id);
+    btn.onclick = () => {
+        if (!gamesStatus[g.id]) {
+            resetGameArea();
+            g.fn(g.id);
+        }
+    };
+    menu.appendChild(btn);
+});
+
+// --- Définition des jeux ---
+
+// 1. Le Calcul
+function jeuCalcul(id) {
+    const a = Math.floor(Math.random() * 10) + 5;
+    const b = Math.floor(Math.random() * 10) + 5;
+    const c = a * b;
+    container.innerHTML = `
+        <h2>Défi 1 : Le Calcul</h2>
+        <p>Combien font ${a} x ${b} ?</p>
+        <input type="number" id="calculInput" />
+        <br/><br/>
+        <button class="answer-btn" onclick="checkAnswer(${c}, document.getElementById('calculInput').value, '${id}')">Valider</button>
+    `;
+}
+
+// 2. Le Pendu
+function jeuPendu(id) {
+    const mots = ['BRASSIERE', 'DEFI', 'RECOMPENSE', 'GRATUIT', 'PROMOTION', 'MENU'];
+    const motSecret = mots[Math.floor(Math.random() * mots.length)];
+    let motAffiche = '_'.repeat(motSecret.length);
+    let erreurs = 0;
+    const maxErreurs = 6;
+    lettresUtilisees = new Set();
+    container.innerHTML = `
+        <h2>Défi 2 : Le Pendu</h2>
+        <h3 id="mot-pendu">${motAffiche}</h3>
+        <p>Nombre d'erreurs: <span id="erreurs">0</span> / ${maxErreurs}</p>
+        <p>Lettres déjà utilisées: <span id="lettres-utilisee"></span></p>
+        <input type="text" id="lettreInput" maxlength="1" placeholder="Tape une lettre" />
+        <button class="answer-btn" id="penduBtn">Valider</button>
+    `;
+    document.getElementById('penduBtn').onclick = () => {
+        const lettre = document.getElementById('lettreInput').value.toUpperCase();
+        document.getElementById('lettreInput').value = '';
+        if (!lettre || lettresUtilisees.has(lettre)) return;
+        lettresUtilisees.add(lettre);
+        document.getElementById('lettres-utilisee').textContent = [...lettresUtilisees].join(', ');
+        if (motSecret.includes(lettre)) {
+            let nouveauMot = '';
+            for (let i = 0; i < motSecret.length; i++) {
+                nouveauMot += motSecret[i] === lettre ? lettre : motAffiche[i];
+            }
+            motAffiche = nouveauMot;
+            document.getElementById('mot-pendu').textContent = motAffiche;
+            if (!motAffiche.includes('_')) {
+                message.textContent = 'Bravo, tu as gagné !';
+                completeGame(id);
+            }
+        } else {
+            erreurs++;
+            document.getElementById('erreurs').textContent = erreurs;
+            if (erreurs >= maxErreurs) {
+                message.textContent = `Dommage, tu as perdu ! Le mot était : ${motSecret}`;
+            }
+        }
+    };
+}
+
+// 3. Le Code Secret
+function jeuCodeSecret(id) {
+    const secret = [Math.floor(Math.random() * 3) + 1, Math.floor(Math.random() * 3) + 1];
+    let tentatives = 0;
+    container.innerHTML = `
+        <h2>Défi 3 : Le Code Secret</h2>
+        <p>Devine la séquence de 2 nombres entre 1 et 3.</p>
+        <input type="number" id="guess1" min="1" max="3" />
+        <input type="number" id="guess2" min="1" max="3" />
+        <br/><br/>
+        <button class="answer-btn" id="guessBtn">Valider</button>
+    `;
+    document.getElementById('guessBtn').onclick = () => {
+        const guess = [parseInt(document.getElementById('guess1').value), parseInt(document.getElementById('guess2').value)];
+        if (guess.some(isNaN)) { message.textContent = "Entre 2 nombres valides."; return; }
+        tentatives++;
+        if (guess[0] === secret[0] && guess[1] === secret[1]) {
+            message.textContent = `Bravo ! Tu as trouvé le code en ${tentatives} tentatives !`;
+            completeGame(id);
+        } else {
+            message.textContent = `Faux, essaie encore.`;
+        }
+    };
+}
+
+// 4. La Chasse au Trésor
+function jeuChasseAuTresor(id) {
+    const emojis = ['💎', '💰', '🔑', '🧭'];
+    const tresor = '💰';
+    const shuffledEmojis = emojis.sort(() => Math.random() - 0.5);
+    container.innerHTML = `<h2>Défi 4 : Chasse au Trésor</h2><p>Trouve le trésor 💰</p>`;
+    shuffledEmojis.forEach(e => {
+        const btn = document.createElement('button');
+        btn.textContent = e;
+        btn.style.fontSize = '40px';
+        btn.style.margin = '10px';
+        btn.onclick = () => {
+            if (e === tresor) {
+                message.textContent = 'Félicitations, tu as trouvé le trésor !';
+                completeGame(id);
+            } else {
+                message.textContent = 'Dommage, ce n\'est pas le trésor. Essaie encore !';
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+// 5. La Bonne Case
+function jeuSimpleClic(id) {
+    const mots = ['BRASSIERE', 'DEFI', 'BONJOUR', 'GARE'];
+    const motCorrect = mots[Math.floor(Math.random() * mots.length)];
+    const motsMelanges = mots.sort(() => Math.random() - 0.5);
+    container.innerHTML = `
+        <h2>Défi 5 : La Bonne Case</h2>
+        <p>Cliquez sur la case où est écrit le mot : **${motCorrect}**</p>
+        <div id="cases-mots" style="display: flex; flex-wrap: wrap; justify-content: center;"></div>
+    `;
+    const casesDiv = document.getElementById('cases-mots');
+    motsMelanges.forEach(mot => {
+        const btn = document.createElement('button');
+        btn.textContent = mot;
+        btn.classList.add('answer-btn');
+        btn.style.padding = '20px 30px';
+        btn.style.fontSize = '20px';
+        btn.onclick = () => {
+            if (mot === motCorrect) {
+                message.textContent = 'Bravo, vous avez trouvé la bonne case !';
+                completeGame(id);
+            } else {
+                message.textContent = 'Faux, essaie encore.';
+            }
+        };
+        casesDiv.appendChild(btn);
+    });
+}
+
+// 6. La Suite de Nombres
+function jeuSuiteNombres(id) {
+    const start = Math.floor(Math.random() * 5) + 1;
+    const diff = Math.floor(Math.random() * 3) + 2;
+    const suite = [start, start + diff, start + diff * 2, start + diff * 3];
+    const next = start + diff * 4;
+    container.innerHTML = `
+        <h2>Défi 6 : La Suite</h2>
+        <p>Quel est le prochain nombre dans cette suite ?</p>
+        <h3>${suite.join(', ')}, ?</h3>
+        <input type="number" id="suiteInput" />
+        <br/><br/>
+        <button class="answer-btn" onclick="checkAnswer(${next}, document.getElementById('suiteInput').value, '${id}')">Valider</button>
+    `;
+}
+
+// 7. Le Compteur
+function jeuCompteur(id) {
+    const chiffreCible = Math.floor(Math.random() * 5) + 3;
+    let compteur = 0;
+    container.innerHTML = `
+        <h2>Défi 7 : Le Compteur</h2>
+        <p>Cliquez sur le bouton jusqu'à atteindre le chiffre **${chiffreCible}**.</p>
+        <h3 id="compteur-chiffre">0</h3>
+        <button class="answer-btn" onclick="updateCompteur('${id}', ${chiffreCible})">Cliquez ici !</button>
+    `;
+    window.updateCompteur = (gameId, target) => {
+        compteur++;
+        document.getElementById('compteur-chiffre').textContent = compteur;
+        if (compteur === target) {
+            message.textContent = 'Bravo, vous avez atteint le bon chiffre !';
+            completeGame(gameId);
+        } else if (compteur > target) {
+            message.textContent = 'Oups, vous avez dépassé le chiffre ! Recommencez le défi.';
+            compteur = 0;
+            document.getElementById('compteur-chiffre').textContent = '0';
+        }
+    };
+}
+
+// 8. Les Chiffres
+function jeuChiffres(id) {
+    const chiffres = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const bonChiffre = 7;
+    container.innerHTML = `<h2>Défi 8 : Le bon Chiffre</h2><p>Clique sur le chiffre 7</p>`;
+    chiffres.sort(() => Math.random() - 0.5);
+    chiffres.forEach(chiffre => {
+        const btn = document.createElement('button');
+        btn.textContent = chiffre;
+        btn.style.fontSize = '24px';
+        btn.style.margin = '10px';
+        btn.onclick = () => {
+            if (chiffre === bonChiffre) {
+                message.textContent = 'Bravo, tu as trouvé le bon chiffre !';
+                completeGame(id);
+            } else {
+                message.textContent = 'Non, ce n\'est pas le bon. Essaie encore !';
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+// 9. Le Poids
+function jeuPoids(id) {
+    const objets = [
+        { nom: "une cuillère", poids: "20g" },
+        { nom: "une chaise", poids: "5kg" },
+    ];
+    const obj = objets[Math.floor(Math.random() * objets.length)];
+    container.innerHTML = `
+        <h2>Défi 9 : Le Poids</h2>
+        <p>Quel est le poids approximatif d'**${obj.nom}** ?</p>
+        <input type="text" id="poidsInput" placeholder="ex: 20g ou 5kg" />
+        <br/><br/>
+        <button class="answer-btn" onclick="checkStringAnswer('${obj.poids}', document.getElementById('poidsInput').value, '${id}')">Valider</button>
+    `;
+}
+
+// 10. Les Paires de Couleurs
+function jeuPairesCouleurs(id) {
+    const couleurs = ['red', 'red', 'blue', 'blue', 'green', 'green', 'yellow', 'yellow'];
+    couleurs.sort(() => Math.random() - 0.5);
+    let first = null;
+    let second = null;
+    let matched = 0;
+    container.innerHTML = `<h2>Défi 10 : Les Paires</h2><p>Retrouve toutes les paires de couleurs</p>`;
+    couleurs.forEach((couleur) => {
+        const btn = document.createElement('button');
+        btn.style.width = '60px';
+        btn.style.height = '60px';
+        btn.style.margin = '10px';
+        btn.style.backgroundColor = 'gray';
+        btn.onclick = () => {
+            if (btn.style.backgroundColor !== 'gray' || second) return;
+            btn.style.backgroundColor = couleur;
+            if (!first) {
+                first = btn;
+            } else {
+                second = btn;
+                if (first.style.backgroundColor === second.style.backgroundColor) {
+                    matched += 2;
+                    first = null;
+                    second = null;
+                    if (matched === couleurs.length) {
+                        message.textContent = `Bravo ! Tu as trouvé toutes les paires !`;
+                        completeGame(id);
+                    }
+                } else {
+                    setTimeout(() => {
+                        first.style.backgroundColor = 'gray';
+                        second.style.backgroundColor = 'gray';
+                        first = null;
+                        second = null;
+                    }, 1000);
+                }
+            }
+        };
+        container.appendChild(btn);
+    });
+}
+
+// Fonction pour vérifier la réponse pour les nombres
+function checkAnswer(expected, actual, id) {
+    const actualFormatted = parseInt(actual);
+    if (actualFormatted == expected) {
+        message.textContent = 'Bravo ! C\'est la bonne réponse.';
+        completeGame(id);
+    } else {
+        message.textContent = 'Faux, essaie encore.';
+    }
+}
+
+// Fonction pour vérifier la réponse pour les chaînes de caractères
+function checkStringAnswer(expected, actual, id) {
+    const actualFormatted = actual.toLowerCase().trim();
+    const expectedFormatted = expected.toLowerCase().replace(/[']/g, '');
+    if (actualFormatted.includes(expectedFormatted) && actualFormatted.length > 2) {
+        message.textContent = 'Bravo ! C\'est la bonne réponse.';
+        completeGame(id);
+    } else {
+        message.textContent = 'Faux, essaie encore.';
+    }
+}
+</script>
+</body>
+</html>
