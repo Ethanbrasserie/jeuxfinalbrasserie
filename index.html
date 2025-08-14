@@ -18,14 +18,9 @@
     .answer-btn:hover { background: #007B9E; }
     input[type=text], input[type=number] { font-size: 18px; padding: 8px; width: 200px; border-radius: 6px; border: none; margin-top: 10px; }
     #reward-card { display: none; margin-top: 40px; text-align: center; }
-    #reward-code { font-size: 40px; font-weight: bold; color: #ffeb3b; padding: 20px; border: 2px dashed #ffeb3b; border-radius: 10px; margin: 20px auto; max-width: 80%; overflow-wrap: break-word; }
     #reward-card p { font-size: 24px; color: #fff; margin-top: 20px; }
-    #codes-log-container { margin-top: 40px; padding: 20px; background: #1f1f1f; border-radius: 10px; width: 90%; max-width: 600px; }
-    #codes-log-container h3 { margin-top: 0; color: #4CAF50; }
-    #codes-log-list { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; }
-    .code-item { background: #222; margin-bottom: 10px; padding: 10px; border-radius: 5px; text-align: left; }
-    .code-item .timestamp { font-size: 14px; color: #aaa; float: right; }
-    #reset-button { background: #d9534f; color: white; border: none; padding: 10px; margin-top: 20px; cursor: pointer; border-radius: 5px; }
+    #submit-form-btn { background: #4CAF50; color: white; border: none; padding: 15px 30px; font-size: 24px; border-radius: 8px; cursor: pointer; }
+    #submit-form-btn:hover { background: #45a049; }
 </style>
 </head>
 <body>
@@ -43,82 +38,17 @@
     </div>
     <div id="message"></div>
     <div id="reward-card">
-        <h3 id="reward-code"></h3>
-        <p>Félicitations, vous avez remporté un menu complet gratuit !<br>Pour en profiter, montrez ce code à l’accueil pendant votre prochaine visite ! CODE VALABLE 1 FOIS</p>
+        <p>Un formulaire a été crée!<br>Pour avoir une chance d'un menu complet gratuit , cliquez sur le bouton ci-dessous pour valider votre participation auprès du formulaire.</p>
+        <button id="submit-form-btn">Réclamer ma récompense !</button>
     </div>
 </div>
-
-<div id="codes-log-container">
-    <h3>Codes Générés (Pour le restaurant)</h3>
-    <p style="font-size: 14px; color: #ffeb3b;">ATTENTION : Ce journal est effacé si la page est rechargée !</p>
-    <ul id="codes-log-list">
-        </ul>
-</div>
-
-<button id="reset-button" onclick="resetCodes()">Réinitialiser les codes</button>
 
 <script>
 const menu = document.getElementById('menu');
 const container = document.getElementById('game-container');
 const message = document.getElementById('message');
 const rewardCard = document.getElementById('reward-card');
-const rewardCodeElement = document.getElementById('reward-code');
-const codesLogList = document.getElementById('codes-log-list');
 const gamesStatus = {};
-
-const initialCodes = [
-    'BRASS-1T79Y4X-EPR8A', 'BRASS-1T79Y4X-3L7N0', 'BRASS-1T79Y4Y-9B8T0', 'BRASS-1T79Y4Y-6I9QZ',
-    'BRASS-1T79Y4Y-E4S4Q', 'BRASS-1T79Y4Z-34A3E', 'BRASS-1T79Y4Z-25Q1C', 'BRASS-1T79Y50-5I8H7',
-    'BRASS-1T79Y50-Y7N9M', 'BRASS-1T79Y51-F8H2C', 'BRASS-1T79Y51-2K2J6', 'BRASS-1T79Y52-3X5U1',
-    'BRASS-1T79Y52-C8V4W', 'BRASS-1T79Y53-6G9R1', 'BRASS-1T79Y53-R0P1K', 'BRASS-1T79Y53-T3G8J',
-    'BRASS-1T79Y54-7V5J2', 'BRASS-1T79Y54-9T0C3', 'BRASS-1T79Y55-D4H7T', 'BRASS-1T79Y55-M8R9A',
-    'BRASS-1T79Y56-9Z2X7', 'BRASS-1T79Y56-J0A3W', 'BRASS-1T79Y57-N5D8G', 'BRASS-1T79Y57-V9T1P',
-    'BRASS-1T79Y58-4B6F0', 'BRASS-1T79Y58-C5U9E', 'BRASS-1T79Y59-2P4Y7', 'BRASS-1T79Y59-Q8Z6J',
-    'BRASS-1T79Y5A-1H2V8', 'BRASS-1T79Y5A-7T5L0', 'BRASS-1T79Y5B-D3K9P', 'BRASS-1T79Y5B-V2C7E',
-    'BRASS-1T79Y5C-5F1H9', 'BRASS-1T79Y5C-I0L4M', 'BRASS-1T79Y5D-O8U5S', 'BRASS-1T79Y5D-W2G1T',
-    'BRASS-1T79Y5E-6E9P3', 'BRASS-1T79Y5E-S7Z4B', 'BRASS-1T79Y5F-A9D2G', 'BRASS-1T79Y5F-H6M1V',
-    'BRASS-1T79Y5G-K4J8R', 'BRASS-1T79Y5G-Q1P5X', 'BRASS-1T79Y5H-3L7N0', 'BRASS-1T79Y5H-9B8T0',
-    'BRASS-1T79Y5I-C8V4W', 'BRASS-1T79Y5I-6G9R1', 'BRASS-1T79Y5J-T3G8J', 'BRASS-1T79Y5J-7V5J2',
-    'BRASS-1T79Y5K-9T0C3', 'BRASS-1T79Y5K-D4H7T', 'BRASS-1T79Y5L-M8R9A', 'BRASS-1T79Y5L-9Z2X7',
-    'BRASS-1T79Y5M-J0A3W', 'BRASS-1T79Y5M-N5D8G', 'BRASS-1T79Y5N-V9T1P', 'BRASS-1T79Y5N-4B6F0',
-    'BRASS-1T79Y5O-C5U9E', 'BRASS-1T79Y5O-2P4Y7', 'BRASS-1T79Y5P-Q8Z6J', 'BRASS-1T79Y5P-1H2V8',
-    'BRASS-1T79Y5Q-7T5L0', 'BRASS-1T79Y5Q-D3K9P', 'BRASS-1T79Y5R-V2C7E', 'BRASS-1T79Y5R-5F1H9',
-    'BRASS-1T79Y5S-I0L4M', 'BRASS-1T79Y5S-O8U5S', 'BRASS-1T79Y5T-W2G1T', 'BRASS-1T79Y5T-6E9P3',
-    'BRASS-1T79Y5U-S7Z4B', 'BRASS-1T79Y5U-A9D2G', 'BRASS-1T79Y5V-H6M1V', 'BRASS-1T79Y5V-K4J8R',
-    'BRASS-1T79Y5W-Q1P5X', 'BRASS-1T79Y5W-EPR8A', 'BRASS-1T79Y5X-3L7N0', 'BRASS-1T79Y5X-9B8T0',
-    'BRASS-1T79Y5Y-6I9QZ', 'BRASS-1T79Y5Y-E4S4Q', 'BRASS-1T79Y5Z-34A3E', 'BRASS-1T79Y5Z-25Q1C',
-    'BRASS-1T79Y60-5I8H7', 'BRASS-1T79Y60-Y7N9M', 'BRASS-1T79Y61-F8H2C', 'BRASS-1T79Y61-2K2J6',
-    'BRASS-1T79Y62-3X5U1', 'BRASS-1T79Y62-C8V4W', 'BRASS-1T79Y63-6G9R1', 'BRASS-1T79Y63-R0P1K',
-    'BRASS-1T79Y63-T3G8J', 'BRASS-1T79Y64-7V5J2', 'BRASS-1T79Y64-9T0C3', 'BRASS-1T79Y65-D4H7T',
-    'BRASS-1T79Y65-M8R9A', 'BRASS-1T79Y66-9Z2X7', 'BRASS-1T79Y66-J0A3W', 'BRASS-1T79Y67-N5D8G',
-    'BRASS-1T79Y67-V9T1P', 'BRASS-1T79Y68-4B6F0', 'BRASS-1T79Y68-C5U9E', 'BRASS-1T79Y69-2P4Y7'
-];
-
-let availableCodes = [];
-let usedCodes = [];
-
-function initializeCodes() {
-    if (!localStorage.getItem('availableCodes')) {
-        localStorage.setItem('availableCodes', JSON.stringify(initialCodes));
-    }
-    if (!localStorage.getItem('usedCodes')) {
-        localStorage.setItem('usedCodes', JSON.stringify([]));
-    }
-    availableCodes = JSON.parse(localStorage.getItem('availableCodes'));
-    usedCodes = JSON.parse(localStorage.getItem('usedCodes'));
-}
-
-function resetCodes() {
-    if (confirm("Êtes-vous sûr de vouloir réinitialiser la liste de codes ? Tous les codes non utilisés seront remis en stock.")) {
-        localStorage.clear();
-        initializeCodes();
-        codesLogList.innerHTML = '';
-        alert("La liste de codes a été réinitialisée !");
-        window.location.reload();
-    }
-}
-
-initializeCodes();
 
 const games = [
     { id: 'calcul', name: "Défi 1 : Le Calcul", fn: jeuCalcul },
@@ -133,38 +63,35 @@ const games = [
     { id: 'paires', name: "Défi 10 : Les Paires", fn: jeuPairesCouleurs },
 ];
 
-function addCodeToLog(code) {
-    const now = new Date();
-    const timeString = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
-    const listItem = document.createElement('li');
-    listItem.classList.add('code-item');
-    listItem.innerHTML = `${code} <span class="timestamp">${timeString}</span>`;
-    codesLogList.prepend(listItem);
-}
-
 function checkAllGamesCompleted() {
     const allCompleted = games.every(g => gamesStatus[g.id]);
     if (allCompleted) {
         container.innerHTML = '<h2>Tous les défis sont réussis !</h2>';
         message.textContent = '';
-
-        if (availableCodes.length > 0) {
-            const newCode = availableCodes.shift();
-            usedCodes.push(newCode);
-            localStorage.setItem('availableCodes', JSON.stringify(availableCodes));
-            localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
-
-            rewardCodeElement.textContent = newCode;
-            addCodeToLog(newCode);
-            rewardCard.style.display = 'block';
-        } else {
-            rewardCodeElement.textContent = "Aucun code disponible.";
-            rewardCodeElement.style.color = '#d9534f';
-            rewardCard.style.display = 'block';
-            rewardCard.querySelector('p').textContent = "Désolé, tous les codes ont été distribués. Revenez plus tard !";
-        }
+        rewardCard.style.display = 'block';
     }
 }
+
+document.getElementById('submit-form-btn').onclick = () => {
+    // URL de soumission du formulaire Google
+    const formUrl = 'https://docs.google.com/forms/u/0/d/e/1FAIpQLScF0UW58m8EImcClloWz9sdxjwLLRMh5eDWWscHNBbl2klrVw/formResponse';
+    
+    // Créer un formulaire temporaire
+    const form = document.createElement('form');
+    form.action = formUrl;
+    form.method = 'post';
+    form.target = '_blank'; // Ouvre l'URL dans un nouvel onglet
+    
+    // Ajoutez des champs de formulaire si nécessaire, par exemple un champ caché
+    // form.innerHTML = '<input type="hidden" name="entry.123456789" value="jeu terminé" />';
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    
+    // Affiche un message pour le joueur après l'envoi
+    rewardCard.innerHTML = '<p>Merci, ça a bien été enregistré. Nous vous contacterons !</p>';
+};
 
 function completeGame(gameId) {
     if (!gamesStatus[gameId]) {
